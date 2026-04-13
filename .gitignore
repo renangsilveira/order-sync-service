@@ -1,0 +1,46 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# VS Code
+.vscode/
+
+# Kotlin
+*.class
+*.kotlin_module
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Spring Boot
+*.pid
+spring-shell.log
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+*.env
+
+# Test reports
+/build/reports/
+/build/test-results/

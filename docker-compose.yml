@@ -1,0 +1,76 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────
+# order-sync-service — local development stack
+#
+# Default (infrastructure only):
+#   docker-compose up
+#
+# Full stack including app:
+#   docker-compose --profile app up --build
+# ─────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: ordersync-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ordersync
+      POSTGRES_USER: ordersync
+      POSTGRES_PASSWORD: ordersync
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ordersync -d ordersync"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── WireMock (simulated ERP) ─────────────────────────────────
+  wiremock:
+    image: wiremock/wiremock:3.10.0-alpine
+    container_name: ordersync-erp-mock
+    restart: unless-stopped
+    ports:
+      - "9090:8080"
+    volumes:
+      - ./wiremock:/home/wiremock
+    command: --verbose --global-response-templating
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/__admin/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Application (optional profile) ──────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ordersync-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ordersync
+      DATABASE_USERNAME: ordersync
+      DATABASE_PASSWORD: ordersync
+      ERP_BASE_URL: http://wiremock:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      wiremock:
+        condition: service_healthy
+    profiles:
+      - app
+
+volumes:
+  postgres_data:
+    name: ordersync-postgres-data

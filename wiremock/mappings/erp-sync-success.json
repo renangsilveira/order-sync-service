@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPattern": "/api/erp/orders"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "erpOrderId": "ERP-{{randomValue type='UUID'}}",
+      "status": "ACCEPTED",
+      "syncedAt": "{{now format='yyyy-MM-dd\\'T\\'HH:mm:ss\\'Z\\''}}"
+    }
+  }
+}

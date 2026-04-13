@@ -1,0 +1,13 @@
+# ── Test overrides ────────────────────────────────────────────
+# Applied when @SpringBootTest loads the context in tests.
+# Keeps retries fast so integration tests don't wait real seconds.
+
+resilience4j:
+  retry:
+    instances:
+      erp-client:
+        wait-duration: 50ms
+        enable-exponential-backoff: false
+
+erp:
+  timeout-seconds: 5
