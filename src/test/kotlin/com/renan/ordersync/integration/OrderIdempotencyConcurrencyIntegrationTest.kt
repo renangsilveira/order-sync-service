@@ -3,7 +3,7 @@ package com.renan.ordersync.integration
 import com.renan.ordersync.integration.TestHelpers.postOrder
 import com.renan.ordersync.repository.OrderRepository
 import com.renan.ordersync.service.OrderProcessingService
-import com.ninja_squad.springmockk.MockkBean
+import com.ninjasquad.springmockk.MockkBean
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test

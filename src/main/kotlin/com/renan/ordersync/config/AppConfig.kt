@@ -18,9 +18,16 @@ class AppConfig {
      * Uses [SupervisorJob] so that a failure in one coroutine does not cancel others.
      * Uses [Dispatchers.IO] because the work is I/O-bound (DB writes, HTTP calls).
      */
+    // CoroutineScope.cancel() is a Kotlin extension function (static in bytecode), so Spring
+    // cannot find it via reflection. Wrapping in an anonymous object gives a real cancel() method.
     @Bean(destroyMethod = "cancel")
-    fun applicationCoroutineScope(): CoroutineScope =
-        CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    fun applicationCoroutineScope(): CoroutineScope {
+        val job = SupervisorJob()
+        return object : CoroutineScope {
+            override val coroutineContext = job + Dispatchers.IO
+            fun cancel() = job.cancel()
+        }
+    }
 
     /**
      * Configures the [RestClient] used by [com.renan.ordersync.client.ErpIntegrationClient].

@@ -24,13 +24,16 @@ data class CreateOrderRequest(
     val items: List<OrderItemRequest>,
 )
 
+// Nullable String fields allow Jackson to deserialize missing JSON fields as null,
+// so Spring's bean validation can produce FieldErrors (MethodArgumentNotValidException)
+// instead of Jackson throwing HttpMessageNotReadableException.
 data class CustomerRequest(
     @field:NotBlank(message = "customer.name is required")
-    val name: String,
+    val name: String?,
 
     @field:NotBlank(message = "customer.email is required")
     @field:Email(message = "customer.email must be a valid email address")
-    val email: String,
+    val email: String?,
 )
 
 data class OrderItemRequest(

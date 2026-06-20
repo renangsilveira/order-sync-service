@@ -20,8 +20,8 @@ class OrderMapper {
         val order = Order(
             externalOrderId = request.externalOrderId,
             sourceSystem = request.sourceSystem,
-            customerName = request.customer.name,
-            customerEmail = request.customer.email,
+            customerName = request.customer.name!!, // non-null guaranteed by @NotBlank validation
+            customerEmail = request.customer.email!!, // non-null guaranteed by @NotBlank validation
             currency = request.currency,
             totalAmount = BigDecimal.ZERO, // recalculated below
             status = OrderStatus.RECEIVED,

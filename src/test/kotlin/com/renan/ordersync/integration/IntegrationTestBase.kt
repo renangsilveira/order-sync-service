@@ -6,37 +6,31 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 
 /**
  * Base class for integration tests that require a real PostgreSQL database.
  *
- * Uses a shared Testcontainers PostgreSQL container (singleton pattern) to avoid
- * starting a new container for every test class. Flyway migrations run automatically
- * on context startup, guaranteeing the schema is always up-to-date.
+ * Uses the Testcontainers Singleton pattern: the container is started once when the
+ * companion object is first loaded, stays alive for the entire JVM session, and is
+ * stopped by Testcontainers' Ryuk sidecar on JVM exit. This avoids the per-class
+ * lifecycle that @Testcontainers + @Container would impose, which would restart the
+ * container between test classes and invalidate the shared Spring context's HikariCP
+ * connection pool.
  *
- * The CI pipeline no longer needs a separate `postgres` service because Testcontainers
- * manages its own container. Docker-in-Docker is supported on GitHub Actions runners
- * with no extra configuration.
- *
- * The `test` Spring profile activates `application-test.yml`, which sets retry waits
- * to 50ms so integration tests finish quickly.
+ * Flyway migrations run automatically on context startup, guaranteeing the schema is
+ * always up-to-date.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-@Testcontainers
 @ActiveProfiles("test")
 abstract class IntegrationTestBase {
 
     companion object {
-        @Container
-        @JvmStatic
         val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16-alpine")
             .withDatabaseName("ordersync_test")
             .withUsername("ordersync")
             .withPassword("ordersync")
-            .withReuse(true) // reuse between classes within the same JVM session
+            .also { it.start() }
 
         @DynamicPropertySource
         @JvmStatic

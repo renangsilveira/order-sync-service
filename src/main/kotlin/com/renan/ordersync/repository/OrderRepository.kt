@@ -17,13 +17,8 @@ interface OrderRepository : JpaRepository<Order, UUID> {
     @Query("SELECT o FROM Order o JOIN FETCH o.items WHERE o.id = :id")
     fun findByIdWithItems(id: UUID): Order?
 
-    /** Eager-fetches items, events and integration attempts for the detail endpoint. */
-    @Query("""
-        SELECT o FROM Order o
-        JOIN FETCH o.items
-        LEFT JOIN FETCH o.events
-        LEFT JOIN FETCH o.integrationAttempts
-        WHERE o.id = :id
-    """)
+    // Only JOIN FETCH items — Hibernate cannot simultaneously fetch multiple List-based (bag)
+    // collections. Events are loaded lazily within the @Transactional service boundary.
+    @Query("SELECT o FROM Order o JOIN FETCH o.items WHERE o.id = :id")
     fun findByIdWithDetails(id: UUID): Order?
 }

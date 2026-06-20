@@ -71,6 +71,9 @@ dependencies {
 
     // Awaitility — async assertions in integration tests
     testImplementation("org.awaitility:awaitility:4.2.2")
+
+    // Required by Gradle 9+ to load JUnit Platform launcher
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 kotlin {
@@ -105,15 +108,62 @@ tasks.jacocoTestReport {
     )
 }
 
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.test)
+    // Mirror the same exclusions as jacocoTestReport so the gate measures
+    // the same surface that the human-readable report shows.
+    classDirectories.setFrom(
+        files(classDirectories.files.map {
+            fileTree(it) {
+                exclude(
+                    "**/config/**",
+                    "**/OrderSyncServiceApplication*",
+                    "**/dto/**",
+                    "**/domain/enums/**",
+                )
+            }
+        })
+    )
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
 tasks.processResources {
     filesMatching("application.yml") {
         filter { line -> line.replace("@project.version@", project.version.toString()) }
     }
 }
 
+// Detect Colima socket so the test JVM can find it even when DOCKER_HOST is not exported
+val colimaSocket = File("${System.getProperty("user.home")}/.colima/default/docker.sock")
+
 tasks.withType<Test> {
     useJUnitPlatform()
-    jvmArgs("-XX:+EnableDynamicAgentLoading")
+    jvmArgs(
+        "-XX:+EnableDynamicAgentLoading",
+        // docker-java reads 'api.version' system property for the Docker daemon API version.
+        // Default is 1.32, but Docker Engine 26+ requires >= 1.40.
+        "-Dapi.version=1.47"
+    )
+    // Prefer DOCKER_HOST from env; fall back to Colima socket when present on macOS
+    val resolvedDockerHost = providers.environmentVariable("DOCKER_HOST").orNull
+        ?: if (colimaSocket.exists()) "unix://${colimaSocket.absolutePath}" else null
+    resolvedDockerHost?.let { environment("DOCKER_HOST", it) }
+    // Colima exposes the daemon via a macOS-side socket, but containers (including Ryuk)
+    // must reference the in-VM path. Without this, Ryuk fails to mount the socket.
+    environment(
+        "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE",
+        providers.environmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE").getOrElse("/var/run/docker.sock")
+    )
 }
 
 tasks.bootJar {
