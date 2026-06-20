@@ -238,6 +238,9 @@ docker-compose --profile app up --build
 # macOS: open build/reports/jacoco/test/html/index.html
 # Linux: xdg-open build/reports/jacoco/test/html/index.html
 
+# Enforce the 80% coverage gate (same check CI runs)
+./gradlew jacocoTestCoverageVerification
+
 # Unit tests only (no Docker needed)
 ./gradlew test --tests "com.renan.ordersync.mapper.*" \
                --tests "com.renan.ordersync.service.*" \
@@ -278,8 +281,8 @@ curl -X POST http://localhost:8080/api/v1/orders \
     "externalOrderId": "ORD-2024-00123",
     "sourceSystem": "ecommerce-web",
     "customer": {
-      "name": "João Silva",
-      "email": "joao.silva@example.com"
+      "name": "Jane Doe",
+      "email": "jane.doe@example.com"
     },
     "currency": "BRL",
     "items": [
@@ -313,7 +316,7 @@ curl http://localhost:8080/api/v1/orders/550e8400-e29b-41d4-a716-446655440000
   "orderId": "550e8400-e29b-41d4-a716-446655440000",
   "externalOrderId": "ORD-2024-00123",
   "sourceSystem": "ecommerce-web",
-  "customer": { "name": "João Silva", "email": "joao.silva@example.com" },
+  "customer": { "name": "Jane Doe", "email": "jane.doe@example.com" },
   "currency": "BRL",
   "totalAmount": 4199.79,
   "status": "SYNCED",
@@ -346,6 +349,9 @@ order-sync-service/
 ├── .github/workflows/ci.yml       # GitHub Actions (build + test, Testcontainers-native)
 ├── docs/
 │   ├── SDD.md                     # System Design Document
+│   ├── ADR-001-coroutines-over-async.md
+│   ├── ADR-002-restclient-over-webclient.md
+│   ├── ADR-003-idempotency-race-recovery.md
 │   └── portfolio-positioning.md   # Interview prep and portfolio context
 ├── wiremock/mappings/             # WireMock ERP stubs (used in dev + integration tests)
 ├── src/
@@ -449,7 +455,6 @@ All schema changes go through versioned SQL migrations. `validate` mode protects
 | **Outbox pattern** | Guarantees async processing survives app restart between DB commit and coroutine launch |
 | **Kafka / SQS** | Replace in-process coroutine dispatch with a durable message broker |
 | **Circuit Breaker** | Shed ERP load automatically during sustained outages |
-| **JaCoCo coverage gate** | Enforce minimum test coverage in CI |
 | **JWT + Spring Security** | Authentication for all endpoints |
 | **OpenTelemetry** | Distributed tracing across services |
 
@@ -458,6 +463,9 @@ All schema changes go through versioned SQL migrations. `validate` mode protects
 ## Documentation
 
 - **[System Design Document](./docs/SDD.md)** — architecture, domain model, API contracts, idempotency, retry, acceptance criteria
+- **[ADR-001: Coroutines over `@Async`](./docs/ADR-001-coroutines-over-async.md)** — why background processing uses structured concurrency instead of Spring's `@Async`
+- **[ADR-002: `RestClient` over `WebClient`](./docs/ADR-002-restclient-over-webclient.md)** — why the ERP call stays synchronous instead of reactive
+- **[ADR-003: Two-layer idempotency with race recovery](./docs/ADR-003-idempotency-race-recovery.md)** — why `createOrder` is intentionally non-transactional
 - **[Swagger UI](http://localhost:8080/swagger-ui.html)** — interactive API explorer (requires running app)
 - **[Portfolio context](./docs/portfolio-positioning.md)** — interview talking points, pitch, and freelancer positioning
 
