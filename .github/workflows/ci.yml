@@ -53,6 +53,9 @@ jobs:
         run: ./gradlew jacocoTestReport --no-daemon
         if: always()
 
+      - name: Enforce coverage gate (80% minimum)
+        run: ./gradlew jacocoTestCoverageVerification --no-daemon
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
